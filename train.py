@@ -1,6 +1,4 @@
-"""
-Train a model on TACRED.
-"""
+
 
 import os
 from datetime import datetime

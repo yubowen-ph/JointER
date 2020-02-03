@@ -48,15 +48,11 @@ def evaluate(data, char2id, word2id, pos2id, id2predicate, model):
     for d in tqdm(iter(data)):
         R = extract_items(d['tokens'],d['pos_tags'], char2id, word2id, pos2id, id2predicate, model)
         official_T = set([tuple(i) for i in d['spo_list']])
-        manual_T = set([tuple(i) for i in d['spo_manual']])
-        results.append({'text':' '.join(d['tokens']), 'predict':list(R), 'truth':list(official_T), 'maunal':list(manual_T)})
+        results.append({'text':' '.join(d['tokens']), 'predict':list(R), 'truth':list(official_T)})
         official_A += len(R & official_T)
         official_B += len(R)
         official_C += len(official_T)
-        manual_A += len(R & manual_T)
-        manual_B += len(R)
-        manual_C += len(manual_T)
-    return 2 * official_A / (official_B + official_C), official_A / official_B, official_A / official_C, 2 * manual_A / (manual_B + manual_C), manual_A / manual_B, manual_A / manual_C, results
+    return 2 * official_A / (official_B + official_C), official_A / official_B, official_A / official_C, results
 
 
 
@@ -64,16 +60,6 @@ def evaluate(data, char2id, word2id, pos2id, id2predicate, model):
 
 
 
-
-
-def test(data, char2id, word2id, pos2id, id2predicate, model):
-    with open('result.json','w') as fw:
-        for d in tqdm(iter(data)):
-            R = set(extract_items(d['text'],d['tokens_jieba'], d['pos_tags'], char2id, word2id, pos2id, id2predicate, model))
-            a = {}
-            a['text'] = d['text']
-            a['spo_list'] = [{"object_type":"XX","subject_type":"XX","subject":c[0],"predicate":c[1],"object":c[2]} for c in R]
-            fw.write(json.dumps(a, ensure_ascii=False)+'\n')
 
 
 

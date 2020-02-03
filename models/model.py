@@ -1,5 +1,5 @@
 """
-A rnn model for relation extraction, written in pytorch.
+A joint model for relation extraction, written in pytorch.
 """
 import math
 import numpy as np
@@ -94,7 +94,7 @@ class RelationModel(object):
 
 
     def predict_subj_per_instance(self, words, chars, pos_tags):
-        """ Run forward prediction. If unsort is True, recover the original order of the batch. """
+
         if self.opt['cuda']:
             words = Variable(torch.LongTensor(words).cuda())
             chars = Variable(torch.LongTensor(chars).cuda())
@@ -121,7 +121,7 @@ class RelationModel(object):
         return subj_start_logits, subj_end_logits, hidden, sentence_rep
 
     def predict_obj_per_instance(self, inputs, hidden, sentence_rep):
-        """ Run forward prediction. If unsort is True, recover the original order of the batch. """
+
         if self.opt['cuda']:
             inputs = [Variable(torch.LongTensor(b).cuda()) for b in inputs]
         else:
@@ -238,7 +238,6 @@ class BiLSTMCNN(nn.Module):
         chars = chars.view(-1,15)
         chars_mask = (chars.data>0).float()
         char_inputs = self.char_encoder(self.drop(self.char_emb(chars)), chars_mask).contiguous().view(batch_size,seq_len,self.opt['char_hidden_dim'])
-        # highway_output = self.highway(torch.cat([word_inputs,char_inputs],dim=2))
         inputs = [word_inputs,char_inputs, pos_inputs]
         inputs = self.drop(torch.cat(inputs, dim=2))
         h0, c0 = self.zero_state(batch_size)

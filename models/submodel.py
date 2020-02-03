@@ -10,11 +10,7 @@ from models.layers import *
 
 
 class SubjTypeModel(nn.Module):
-    """
-    A position-augmented attention layer where the attention weight is
-    a = T' . tanh(Ux + Vq + Wf)
-    where x is the input, q is the query, and f is additional position features.
-    """
+
     
     def __init__(self, opt, input_size, hidden_dim, filter=3):
         super(SubjTypeModel, self).__init__()
@@ -48,11 +44,8 @@ class SubjTypeModel(nn.Module):
 
 
     def forward(self, hidden, sentence_rep, masks, nearest_subj_position_for_each_token, distance_to_nearest_subj): #
-        """
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         batch_size, seq_len, input_size = hidden.size()
 
         mask = masks.long()
@@ -69,7 +62,6 @@ class SubjTypeModel(nn.Module):
         subj_start_outputs = nn.utils.rnn.pack_padded_sequence(subj_start_inputs, seq_lens, batch_first=True)
         subj_start_outputs, (ht, ct) = self.rnn_start(subj_start_outputs, (h0, c0))
         subj_start_outputs, output_lens = nn.utils.rnn.pad_packed_sequence(subj_start_outputs, batch_first=True)
-        # subj_start_hidden_for_each_token = torch.gather(subj_start_outputs, dim=1, index=subj_nearest_start_for_each.unsqueeze(2).repeat(1,1,input_size)).squeeze(1)       
         subj_end_inputs = torch.cat([subj_start_outputs, distance_to_nearest_subj_emb, seq_and_vec(seq_len,sentence_rep)], dim=2)
         
         subj_end_inputs = self.dropout(subj_end_inputs)
@@ -89,11 +81,8 @@ class SubjTypeModel(nn.Module):
 
 
     def predict_subj_start(self, hidden, sentence_rep, masks):
-        """yi
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         batch_size, seq_len, input_size = hidden.size()
 
         mask = masks.long()
@@ -114,11 +103,8 @@ class SubjTypeModel(nn.Module):
 
 
     def predict_subj_end(self, subj_start_outputs, masks, nearest_subj_position_for_each_token, distance_to_nearest_subj, sentence_rep):
-        """
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         batch_size, seq_len, input_size = subj_start_outputs.size()
 
         mask = masks.long()
@@ -130,8 +116,6 @@ class SubjTypeModel(nn.Module):
 
         distance_to_nearest_subj_emb = self.position_embedding(distance_to_nearest_subj)
         h0, c0 = self.zero_state(batch_size)
-        # subj_start_hidden_for_each_token = torch.gather(subj_start_outputs, dim=1, index=subj_nearest_start_for_each.unsqueeze(2).repeat(1,1,input_size)).squeeze(1)       
-        # subj_end_inputs = torch.cat([subj_start_outputs, subj_start_hidden_for_each_token], dim=2)
         subj_end_inputs = torch.cat([subj_start_outputs, distance_to_nearest_subj_emb, seq_and_vec(seq_len,sentence_rep)], dim=2)
         subj_end_outputs = nn.utils.rnn.pack_padded_sequence(subj_end_inputs, seq_lens, batch_first=True)
         subj_end_outputs, (ht, ct) = self.rnn_end(subj_end_outputs, (h0, c0))
@@ -146,11 +130,7 @@ class SubjTypeModel(nn.Module):
 
 
 class ObjBaseModel(nn.Module):
-    """
-    A position-augmented attention layer where the attention weight is
-    a = T' . tanh(Ux + Vq + Wf)
-    where x is the input, q is the query, and f is additional position features.
-    """
+
     
     def __init__(self, opt, input_size, hidden_dim, filter=3):
         super(ObjBaseModel, self).__init__()
@@ -181,11 +161,8 @@ class ObjBaseModel(nn.Module):
 
 
     def forward(self, hidden, sentence_rep, subj_start_position, subj_end_position, masks, distance_to_subj, nearest_obj_start_position_for_each_token, distance_to_nearest_obj_start):
-        """
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         mask = masks.long()
         if mask.shape[0] == 1:
             seq_lens = [mask.sum(1).squeeze()]
@@ -194,7 +171,7 @@ class ObjBaseModel(nn.Module):
         batch_size, seq_len, input_size = hidden.shape
         subj_start_hidden = torch.gather(hidden, dim=1, index=subj_start_position.unsqueeze(2).repeat(1,1,input_size)).squeeze(1)       
         subj_end_hidden = torch.gather(hidden, dim=1, index=subj_end_position.unsqueeze(2).repeat(1,1,input_size)).squeeze(1)       
-        distance_to_subj_emb = self.distance_to_subj_embedding(distance_to_subj+200)        
+        distance_to_subj_emb = self.distance_to_subj_embedding(distance_to_subj+200)   # To avoid negative indices     
         subj_related_info = torch.cat([seq_and_vec(seq_len,sentence_rep), seq_and_vec(seq_len,subj_start_hidden), seq_and_vec(seq_len,subj_end_hidden), distance_to_subj_emb], dim=2)
         obj_inputs = torch.cat([hidden, subj_related_info], dim=2)    
         obj_start_inputs = self.dropout(obj_inputs)
@@ -212,8 +189,6 @@ class ObjBaseModel(nn.Module):
         obj_end_inputs = self.dropout(subj_end_inputs)
         obj_start_outputs = self.dropout(obj_start_outputs)
         obj_start_logits = self.linear_obj_start(obj_start_outputs)
-
-        # obj_end_inputs = torch.cat([obj_start_inputs, obj_end_inputs], dim=2)
         
         obj_end_outputs = nn.utils.rnn.pack_padded_sequence(obj_end_inputs, seq_lens, batch_first=True)
         obj_end_outputs, (ht, ct) = self.rnn_end(obj_end_outputs, (h0, c0))
@@ -224,11 +199,8 @@ class ObjBaseModel(nn.Module):
         return obj_start_logits, obj_end_logits
 
     def predict_obj_start(self, hidden, sentence_rep, subj_start_position, subj_end_position, masks, distance_to_subj):
-        """yi
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         batch_size, seq_len, input_size = hidden.size()
 
         mask = masks.long()
@@ -255,11 +227,8 @@ class ObjBaseModel(nn.Module):
 
 
     def predict_obj_end(self, obj_start_outputs, masks, nearest_obj_start_position_for_each_token, distance_to_nearest_obj_start):
-        """
-        x : batch_size * seq_len * input_size
-        q : batch_size * query_size
-        f : batch_size * seq_len * feature_size
-        """
+
+
         batch_size, seq_len, input_size = obj_start_outputs.size()
 
         mask = masks.long()
@@ -273,8 +242,6 @@ class ObjBaseModel(nn.Module):
         obj_end_inputs = torch.cat([obj_start_outputs, distance_to_nearest_obj_emb], dim=2)
 
         h0, c0 = self.zero_state(batch_size)
-        # subj_start_hidden_for_each_token = torch.gather(subj_start_outputs, dim=1, index=subj_nearest_start_for_each.unsqueeze(2).repeat(1,1,input_size)).squeeze(1)       
-        # subj_end_inputs = torch.cat([subj_start_outputs, subj_start_hidden_for_each_token], dim=2)
         obj_end_outputs = nn.utils.rnn.pack_padded_sequence(obj_end_inputs, seq_lens, batch_first=True)
         obj_end_outputs, (ht, ct) = self.rnn_end(obj_end_outputs, (h0, c0))
         obj_end_outputs, output_lens = nn.utils.rnn.pad_packed_sequence(obj_end_outputs, batch_first=True)

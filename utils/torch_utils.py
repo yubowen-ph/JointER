@@ -89,6 +89,7 @@ class MyAdagrad(Optimizer):
 
         return loss
 
+
 ### torch specific functions
 def get_optimizer(name, parameters, lr, weight_decay):
     if name == 'sgd':
@@ -97,9 +98,9 @@ def get_optimizer(name, parameters, lr, weight_decay):
         # use my own adagrad to allow for init accumulator value
         return MyAdagrad(parameters, lr=lr, init_accu_value=0.1)
     elif name == 'adam':
-        return torch.optim.Adam(parameters, betas=(0.9, 0.99), weight_decay=weight_decay) # use default lr
+        return torch.optim.Adam(parameters, lr=lr, betas=(0.9, 0.99), weight_decay=weight_decay) # use default lr
     elif name == 'adamax':
-        return torch.optim.Adamax(parameters) # use default lr
+        return torch.optim.Adamax(parameters, lr=lr) # use default lr
     else:
         raise Exception("Unsupported optimizer: {}".format(name))
 

@@ -1,4 +1,6 @@
-
+"""
+Train a model on for JointER.
+"""
 
 import os
 from datetime import datetime
@@ -14,30 +16,26 @@ from torch.autograd import Variable
 import json
 
 
-
-
-
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_dir', type=str, default='/home/yubowen/experiments/JointER/dataset/NYT/data')
-parser.add_argument('--vocab_dir', type=str, default='/home/yubowen/experiments/JointER/dataset/NYT/vocab')
+parser.add_argument('--data_dir', type=str, default='dataset/NYT-multi/data')
+parser.add_argument('--vocab_dir', type=str, default='dataset/NYT-multi/vocab')
 parser.add_argument('--word_emb_dim', type=int, default=300, help='Word embedding dimension.')
-parser.add_argument('--char_emb_dim', type=int, default=100, help='Word embedding dimension.')
-parser.add_argument('--pos_emb_dim', type=int, default=20, help='Word embedding dimension.')
-parser.add_argument('--position_emb_dim', type=int, default=20, help='Word embedding dimension.')
+parser.add_argument('--char_emb_dim', type=int, default=100, help='Char embedding dimension.')
+parser.add_argument('--pos_emb_dim', type=int, default=20, help='Part-of-speech embedding dimension.')
+parser.add_argument('--position_emb_dim', type=int, default=20, help='Position embedding dimension.')
 parser.add_argument('--hidden_dim', type=int, default=200, help='RNN hidden state size.')
-parser.add_argument('--char_hidden_dim', type=int, default=100, help='RNN hidden state size.')
+parser.add_argument('--char_hidden_dim', type=int, default=100, help='Char-CNN hidden state size.')
 parser.add_argument('--num_layers', type=int, default=1, help='Num of RNN layers.')
 parser.add_argument('--dropout', type=float, default=0.4, help='Input and RNN dropout rate.')
 parser.add_argument('--word_dropout', type=float, default=0.04, help='The rate at which randomly set a word to UNK.')
 parser.add_argument('--topn', type=int, default=1e10, help='Only finetune top N embeddings.')
-parser.add_argument('--subj_loss_weight', type=float, default=1, help='Only finetune top N embeddings.')
-parser.add_argument('--type_loss_weight', type=float, default=1, help='Only finetune top N embeddings.')
-parser.add_argument('--lr', type=float, default=1.0, help='Applies to SGD and Adagrad.')
-parser.add_argument('--lr_decay', type=float, default=0.9)
+parser.add_argument('--subj_loss_weight', type=float, default=1, help='Subjct loss weight.')
+parser.add_argument('--type_loss_weight', type=float, default=1, help='Object loss weight.')
+parser.add_argument('--lr', type=float, default=1e-3)
+parser.add_argument('--lr_decay', type=float, default=0)
 parser.add_argument('--weight_decay', type=float, default=0, help='Applies to SGD and Adagrad.')
 parser.add_argument('--optim', type=str, default='adam', help='sgd, adagrad, adam or adamax.')
-parser.add_argument('--num_epoch', type=int, default=30)
+parser.add_argument('--num_epoch', type=int, default=50)
 parser.add_argument('--load_saved', type=str, default='')
 parser.add_argument('--batch_size', type=int, default=64)
 parser.add_argument('--max_grad_norm', type=float, default=5.0, help='Gradient clipping.')
@@ -48,16 +46,18 @@ parser.add_argument('--save_dir', type=str, default='./saved_models', help='Root
 parser.add_argument('--id', type=str, default='00', help='Model ID under which to save models.')
 parser.add_argument('--info', type=str, default='', help='Optional info for the experiment.')
 
-parser.add_argument('--seed', type=int, default=42)
+
+parser.add_argument('--seed', type=int, default=35)
 parser.add_argument('--cuda', type=bool, default=torch.cuda.is_available())
 parser.add_argument('--cpu', action='store_true', help='Ignore CUDA.')
 args = parser.parse_args()
 
 
+
 torch.manual_seed(args.seed)
 np.random.seed(args.seed)
 torch.cuda.manual_seed(args.seed)
-random.seed(43)
+random.seed(args.seed)
 
 from utils.loader import DataLoader
 from models.model import RelationModel
@@ -65,23 +65,15 @@ from utils import helper, score
 from utils.vocab import Vocab
 
 
-# if args.cpu:
-#     args.cuda = False
-# elif args.cuda:
-#     torch.cuda.manual_seed(args.seed)
-
-# make opt
 opt = vars(args)
 
 
 # load data
-# train_data = json.load(open(opt['data_dir'] + '/train_me.json'))
-train_data = json.load(open(opt['data_dir'] + '/train.clean.json'))
-dev_data = json.load(open(opt['data_dir'] + '/dev.clean.manual.json'))
+train_data = json.load(open(opt['data_dir'] + '/train.json'))
+dev_data = json.load(open(opt['data_dir'] + '/dev.json'))
 id2predicate, predicate2id, id2subj_type, subj_type2id, id2obj_type, obj_type2id = json.load(open(opt['data_dir'] + '/schemas.json'))
 id2predicate = {int(i):j for i,j in id2predicate.items()}
 id2char, char2id, id2pos, pos2id = json.load(open(opt['vocab_dir'] + '/chars.json'))
-# id2char, char2id = json.load(open(opt['vocab_dir'] + '/all_chars_pretrain_me.json'))
 
 opt['num_class'] = len(id2predicate)
 opt['num_subj_type'] = len(id2subj_type)
@@ -105,7 +97,6 @@ word2id = vocab.word2id
 # load data
 print("Loading data from {} with batch size {}...".format(opt['data_dir'], opt['batch_size']))
 train_batch = DataLoader(train_data, predicate2id, char2id, word2id, pos2id, subj_type2id, obj_type2id, opt['batch_size'])
-# dev_batch = DataLoader(dev_data, predicate2id, char2id, opt['batch_size'])
 
 model_id = opt['id'] if len(opt['id']) > 1 else '0' + opt['id']
 model_save_dir = opt['save_dir'] + '/' + model_id
@@ -152,13 +143,13 @@ for epoch in range(1, opt['num_epoch']+1):
 
     # eval on dev
     print("Evaluating on dev set...")
-    dev_f1, dev_p, dev_r, maunal_f1, maunal_p, maunal_r, results = score.evaluate(dev_data, char2id, word2id, pos2id, id2predicate, model)
+    dev_f1, dev_p, dev_r, results = score.evaluate(dev_data, char2id, word2id, pos2id, id2predicate, model)
 
     
     train_loss = train_loss / train_batch.num_examples * opt['batch_size'] # avg loss per batch
     best_f1 = dev_f1 if epoch == 1 or dev_f1 > max(dev_f1_history) else max(dev_f1_history)
-    print("epoch {}: train_loss = {:.6f}, dev_p = {:.6f}, dev_r = {:.6f}, dev_f1 = {:.4f}, m_p = {:.6f}, m_r = {:.6f}, m_f1 = {:.4f}, best_f1 = {:.4f}".format(epoch,\
-            train_loss, dev_p, dev_r, dev_f1, maunal_p, maunal_r, maunal_f1, best_f1))
+    print("epoch {}: train_loss = {:.6f}, dev_p = {:.6f}, dev_r = {:.6f}, dev_f1 = {:.4f}, best_f1 = {:.4f}".format(epoch,\
+            train_loss, dev_p, dev_r, dev_f1, best_f1))
     file_logger.log("{}\t{:.6f}\t{:.6f}\t{:.4f}\t{:.4f}".format(epoch, train_loss, dev_p, dev_r, dev_f1))
 
     # save
@@ -167,7 +158,7 @@ for epoch in range(1, opt['num_epoch']+1):
     if epoch == 1 or dev_f1 > max(dev_f1_history):
         copyfile(model_file, model_save_dir + '/best_model.pt')
         print("new best model saved.")
-        with open(model_save_dir + '/best_results.json', 'w') as fw:
+        with open(model_save_dir + '/best_dev_results.json', 'w') as fw:
             json.dump(results, fw, indent=4, ensure_ascii=False)
         print("new best results saved.")
     if epoch % opt['save_epoch'] != 0:

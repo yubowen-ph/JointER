@@ -147,8 +147,8 @@ class DataLoader(object):
                     ts1[j[0]] = stp
                     ts2[j[1]-1] = stp
                 k1, k2 = choice(list(items.keys()))
-                o1, o2 = [0] * len(tokens), [0] * len(tokens) # 0是unk类（共49+1个类）
-                to1, to2 = [0] * len(tokens), [0] * len(tokens) # 0是unk类（共49+1个类）
+                o1, o2 = [0] * len(tokens), [0] * len(tokens) 
+                to1, to2 = [0] * len(tokens), [0] * len(tokens) 
                 distance_to_subj = get_positions(k1, k2-1, len(tokens))
 
                 for j in items[(k1, k2)]:
@@ -157,7 +157,6 @@ class DataLoader(object):
                     otp = choice(obj_type[(j[0], j[1])])
                     to1[j[0]] = otp
                     to2[j[1]-1] = otp
-                # processed += [(tokens, [k1], [k2-1], s1, s2, o1, o2, seg_tags, pos_tags)]
                 processed += [(tokens_ids, chars_ids, [k1], [k2-1], s1, s2, o1, o2, ts1, ts2, to1, to2, pos_tags, distance_to_subj)]
         return processed
 
@@ -181,7 +180,6 @@ class DataLoader(object):
         lens = [len(x) for x in batch[0]]
 
         batch, orig_idx = sort_all(batch, lens)
-        # orig_idx = lens
         T = np.array(seq_padding(batch[0]))
         C = np.array(char_padding(batch[1]))
         K1, K2 = np.array(batch[2]), np.array(batch[3])
@@ -207,13 +205,6 @@ class DataLoader(object):
 
 
 if __name__ == '__main__':
-    # data = json.load(open('../data/dataset' + '/train_me.json')) + json.load(open('../data/dataset' + '/dev_me.json'))
-    # max_len = 0
-    # for d in data:
-    #     text = d['text']
-    #     if max_len < len(text):
-    #         max_len =  len(text)
-    # print(max_len)
     s = [[[1,3,4],[2,2,2,2,2]],[[1,3,4,6,6,6,6,6,6],[2,2,2,2,2,7,7,7]]]
     print(char_padding(s))
 

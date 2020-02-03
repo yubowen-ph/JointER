@@ -2,14 +2,14 @@ Joint Extraction of Entities and Relations Based on a Novel Decomposition Strate
 ==========
 
 This code is for ECAI 2020 paper "Joint Extraction of Entities and Relations Based on a Novel Decomposition Strategy", in which we first decompose the joint extraction task into two interrelated subtasks, namely HE extraction and TER extraction. The former subtask is to distinguish all head-entities that may be involved with target relations, and the latter is to identify corresponding tail-entities and relations for each extracted head-entity. Next, these two subtasks are further deconstructed into several sequence labeling problems based on our proposed span-based tagging scheme, which are conveniently solved by a hierarchical boundary tagger and a multi-span decoding algorithm. Experimental results show that our method outperforms previous work by 5.2%, 5.9% and 21.5% (F1 score), achieving a new state-of-the-art on three public datasets as follows:
-![Main results on three benchmark datasets](figs/results.jpg "Main results on three benchmark datasets")
+![Main results on three benchmark datasets](https://yubowen-ph.github.io/files/2020_ECAI_ETL/results.jpg "Main results on three benchmark datasets")
 
 
 You can find the paper [here](https://yubowen-ph.github.io/files/2020_ECAI_ETL/ETL.pdf)
 
 See below for an overview of the model architecture:
 
-![ETL-Span Architecture](figs/model.png "ETL-Span Architecture")
+![ETL-Span Architecture](https://yubowen-ph.github.io/files/2020_ECAI_ETL/model.png "ETL-Span Architecture")
 
 ## Requirements
 

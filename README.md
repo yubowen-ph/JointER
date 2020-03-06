@@ -39,7 +39,7 @@ chmod +x download.sh; ./download.sh
 Then prepare vocabulary, initial word vectors and tagging scheme of NYT-multi with:
 
 ```
-python prepare_vocab.py --data_dir dataset/NYT-multi/data --vocab_dir dataset/NYT-multi/vocab
+python prepare_data.py --data_dir dataset/NYT-multi/data --vocab_dir dataset/NYT-multi/vocab
 ```
 
 Similar operation can also be applied to the WebNLG dataset.

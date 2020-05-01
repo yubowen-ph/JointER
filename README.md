@@ -85,7 +85,7 @@ This will use the `best_model.pt` file by default. Use `--model checkpoint_epoch
 
 ```
 @inproceedings{yu2020jointer,
- author = {Bowen, Yu and Zhenyu, Zhang and Xiaobo, Shu and Yubin, Wang and Tingwen, Liu and Bin, Wang and Sujian, Li},
+ author = {Yu, Bowen and Zhang, Zhenyu and Shu, Xiaobo and Wang, Yubin and Liu, Tingwen and Wang, Bin and Li, Sujian},
  booktitle = {Proc. of ECAI},
  title = {Joint Extraction of Entities and Relations Based on a Novel Decomposition Strategy},
  year = {2020}
